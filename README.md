@@ -1,4 +1,5 @@
 undertow-pac4j-demo
 ===================
 
-pac4j for undertow demo
+To run the demo, execute:
+<pre><code>mvn compile exec:java</code></pre>
