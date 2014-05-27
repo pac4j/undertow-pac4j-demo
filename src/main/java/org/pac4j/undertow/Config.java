@@ -20,8 +20,6 @@ import io.undertow.server.session.SessionConfig;
 import io.undertow.server.session.SessionCookieConfig;
 import io.undertow.server.session.SessionManager;
 
-import java.util.regex.Pattern;
-
 import org.pac4j.core.client.Clients;
 
 /**
@@ -39,18 +37,8 @@ public final class Config {
 
     private static String defaultLogoutUrl = DEFAULT_URL;
 
-    // 1 hour = 3600 seconds
-    private static int profileTimeout = 3600;
-
-    // 1 minute = 60 second
-    private static int sessionTimeout = 60;
-
     // all the clients
     private static Clients clients;
-
-    private static String errorPage401 = "authentication required";
-
-    private static String errorPage403 = "forbidden";
 
     private static SessionManager sessionManager = new InMemorySessionManager("SessionManager");
 
@@ -72,44 +60,12 @@ public final class Config {
         Config.defaultLogoutUrl = defaultLogoutUrl;
     }
 
-    public static int getProfileTimeout() {
-        return profileTimeout;
-    }
-
-    public static void setProfileTimeout(final int profileTimeout) {
-        Config.profileTimeout = profileTimeout;
-    }
-
-    public static int getSessionTimeout() {
-        return sessionTimeout;
-    }
-
-    public static void setSessionTimeout(final int sessionTimeout) {
-        Config.sessionTimeout = sessionTimeout;
-    }
-
     public static Clients getClients() {
         return clients;
     }
 
     public static void setClients(final Clients clients) {
         Config.clients = clients;
-    }
-
-    public static String getErrorPage401() {
-        return errorPage401;
-    }
-
-    public static void setErrorPage401(final String errorPage401) {
-        Config.errorPage401 = errorPage401;
-    }
-
-    public static String getErrorPage403() {
-        return errorPage403;
-    }
-
-    public static void setErrorPage403(final String errorPage403) {
-        Config.errorPage403 = errorPage403;
     }
 
     public static SessionManager getSessionManager() {
