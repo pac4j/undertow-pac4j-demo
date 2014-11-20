@@ -17,22 +17,8 @@ package org.pac4j.undertow;
 
 import io.undertow.Handlers;
 import io.undertow.Undertow;
-import io.undertow.security.api.AuthenticationMechanism;
-import io.undertow.security.api.AuthenticationMode;
-import io.undertow.security.handlers.AuthenticationCallHandler;
-import io.undertow.security.handlers.AuthenticationConstraintHandler;
-import io.undertow.security.handlers.AuthenticationMechanismsHandler;
-import io.undertow.security.handlers.SecurityInitialHandler;
-import io.undertow.server.HttpHandler;
 import io.undertow.server.handlers.PathHandler;
-import io.undertow.server.handlers.form.EagerFormParsingHandler;
-import io.undertow.server.handlers.form.FormEncodedDataDefinition;
-import io.undertow.server.handlers.form.FormParserFactory;
 import io.undertow.server.handlers.resource.ClassPathResourceManager;
-import io.undertow.server.session.SessionAttachmentHandler;
-
-import java.util.Collections;
-import java.util.List;
 
 import org.pac4j.cas.client.CasClient;
 import org.pac4j.core.client.Clients;
@@ -42,6 +28,9 @@ import org.pac4j.http.credentials.SimpleTestUsernamePasswordAuthenticator;
 import org.pac4j.oauth.client.FacebookClient;
 import org.pac4j.oauth.client.TwitterClient;
 import org.pac4j.saml.client.Saml2Client;
+import org.pac4j.undertow.handlers.CallbackHandler;
+import org.pac4j.undertow.handlers.LogoutHandler;
+import org.pac4j.undertow.utils.HandlerHelper;
 
 /**
  * Undertow demo server demonstrating how to integrate pac4j.
@@ -54,61 +43,39 @@ public class DemoServer {
 
     public static void main(final String[] args) {
 
-        Config.setClients(buildClients());
+        Config config = new Config();
+        config.setClients(buildClients());
 
         PathHandler path = new PathHandler();
 
-        path.addExactPath("/", DemoHandlers.indexHandler);
+        path.addExactPath("/", DemoHandlers.buildIndexHandler(config));
 
         path.addExactPath("/facebook/index.html",
-                addSecurity(DemoHandlers.authenticatedHandler, "FacebookClient", false));
-        path.addExactPath("/twitter/index.html", addSecurity(DemoHandlers.authenticatedHandler, "TwitterClient", false));
-        path.addExactPath("/form/index.html", addSecurity(DemoHandlers.authenticatedHandler, "FormClient", false));
+                HandlerHelper.requireAuthentication(DemoHandlers.authenticatedHandler, config, "FacebookClient", false));
+        path.addExactPath("/twitter/index.html",
+                HandlerHelper.requireAuthentication(DemoHandlers.authenticatedHandler, config, "TwitterClient", false));
+        path.addExactPath("/form/index.html",
+                HandlerHelper.requireAuthentication(DemoHandlers.authenticatedHandler, config, "FormClient", false));
         path.addExactPath("/form/index.html.json",
-                addSecurity(DemoHandlers.authenticatedJsonHandler, "FormClient", true));
+                HandlerHelper.requireAuthentication(DemoHandlers.authenticatedJsonHandler, config, "FormClient", true));
         path.addExactPath("/basicauth/index.html",
-                addSecurity(DemoHandlers.authenticatedHandler, "BasicAuthClient", false));
-        path.addExactPath("/cas/index.html", addSecurity(DemoHandlers.authenticatedHandler, "CasClient", false));
-        path.addExactPath("/saml2/index.html", addSecurity(DemoHandlers.authenticatedHandler, "Saml2Client", false));
+                HandlerHelper.requireAuthentication(DemoHandlers.authenticatedHandler, config, "BasicAuthClient", false));
+        path.addExactPath("/cas/index.html",
+                HandlerHelper.requireAuthentication(DemoHandlers.authenticatedHandler, config, "CasClient", false));
+        path.addExactPath("/saml2/index.html",
+                HandlerHelper.requireAuthentication(DemoHandlers.authenticatedHandler, config, "Saml2Client", false));
 
-        path.addExactPath("/callback", addFormParsing(new CallbackHandler()));
-        path.addExactPath("/logout", new LogoutHandler());
+        path.addExactPath("/callback", CallbackHandler.build(config));
+        path.addExactPath("/logout", LogoutHandler.build(config));
         ;
         path.addPrefixPath("/assets/js",
                 Handlers.resource(new ClassPathResourceManager(DemoServer.class.getClassLoader())));
 
-        path.addExactPath("/theForm.html", DemoHandlers.formHandler);
+        path.addExactPath("/theForm.html", DemoHandlers.buildFormHandler(config));
 
-        Undertow server = Undertow.builder().addListener(8080, "localhost").setHandler(addSession(path)).build();
+        Undertow server = Undertow.builder().addListener(8080, "localhost")
+                .setHandler(HandlerHelper.addSession(path, config)).build();
         server.start();
-    }
-
-    private static HttpHandler addFormParsing(final HttpHandler toWrap) {
-        HttpHandler handler = toWrap;
-        FormParserFactory factory = FormParserFactory.builder().addParser(new FormEncodedDataDefinition()).build();
-        EagerFormParsingHandler formHandler = new EagerFormParsingHandler(factory);
-        formHandler.setNext(handler);
-        handler = formHandler;
-        return handler;
-    }
-
-    private static HttpHandler addSession(final HttpHandler toWrap) {
-        return new SessionAttachmentHandler(toWrap, Config.getSessionManager(), Config.getSessioncookieconfig());
-    }
-
-    private static HttpHandler addSecurity(final HttpHandler toWrap, final String clientName, boolean isAjax) {
-        HttpHandler handler = toWrap;
-        // protect resource
-        handler = new AuthenticationCallHandler(handler);
-        // set authentication required
-        handler = new AuthenticationConstraintHandler(handler);
-        List<AuthenticationMechanism> mechanisms = Collections
-                .<AuthenticationMechanism> singletonList(new ClientAuthenticationMechanism(clientName, isAjax));
-        // use pac4j as authentication mechanism
-        handler = new AuthenticationMechanismsHandler(handler, mechanisms);
-        // put security context in exchange
-        handler = new SecurityInitialHandler(AuthenticationMode.PRO_ACTIVE, null, handler);
-        return handler;
     }
 
     private static Clients buildClients() {
