@@ -96,7 +96,7 @@ public class DemoServer {
         // CAS
         final CasClient casClient = new CasClient();
         // casClient.setGateway(true);
-        casClient.setCasLoginUrl("https://freeuse1.casinthecloud.com/leleujgithub/login");
+        casClient.setCasLoginUrl("http://localhost:8888/cas/login");
 
         final Clients clients = new Clients("http://localhost:8080/callback", saml2Client, facebookClient,
                 twitterClient, formClient, basicAuthClient, casClient);
