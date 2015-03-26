@@ -25,6 +25,7 @@ import org.pac4j.core.client.Clients;
 import org.pac4j.http.client.BasicAuthClient;
 import org.pac4j.http.client.FormClient;
 import org.pac4j.http.credentials.SimpleTestUsernamePasswordAuthenticator;
+import org.pac4j.http.profile.UsernameProfileCreator;
 import org.pac4j.oauth.client.FacebookClient;
 import org.pac4j.oauth.client.TwitterClient;
 import org.pac4j.saml.client.Saml2Client;
@@ -58,8 +59,8 @@ public class DemoServer {
                 HandlerHelper.requireAuthentication(DemoHandlers.authenticatedHandler, config, "FormClient", false));
         path.addExactPath("/form/index.html.json",
                 HandlerHelper.requireAuthentication(DemoHandlers.authenticatedJsonHandler, config, "FormClient", true));
-        path.addExactPath("/basicauth/index.html",
-                HandlerHelper.requireAuthentication(DemoHandlers.authenticatedHandler, config, "BasicAuthClient", false));
+        path.addExactPath("/basicauth/index.html", HandlerHelper.requireAuthentication(
+                DemoHandlers.authenticatedHandler, config, "BasicAuthClient", false));
         path.addExactPath("/cas/index.html",
                 HandlerHelper.requireAuthentication(DemoHandlers.authenticatedHandler, config, "CasClient", false));
         path.addExactPath("/saml2/index.html",
@@ -90,8 +91,9 @@ public class DemoServer {
                 "2kAzunH5Btc4gRSaMr7D7MkyoJ5u1VzbOOzE8rBofs");
         // HTTP
         final FormClient formClient = new FormClient("http://localhost:8080/theForm.html",
-                new SimpleTestUsernamePasswordAuthenticator());
-        final BasicAuthClient basicAuthClient = new BasicAuthClient(new SimpleTestUsernamePasswordAuthenticator());
+                new SimpleTestUsernamePasswordAuthenticator(), new UsernameProfileCreator());
+        final BasicAuthClient basicAuthClient = new BasicAuthClient(new SimpleTestUsernamePasswordAuthenticator(),
+                new UsernameProfileCreator());
 
         // CAS
         final CasClient casClient = new CasClient();
