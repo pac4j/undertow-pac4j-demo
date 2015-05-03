@@ -15,8 +15,10 @@
  */
 package org.pac4j.undertow;
 
+import io.undertow.server.DefaultResponseListener;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
+import io.undertow.util.Headers;
 import io.undertow.util.HttpString;
 
 import org.pac4j.cas.client.CasClient;
@@ -90,14 +92,20 @@ public class DemoHandlers {
                 sb.append("<script src=\"http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js\"></script>");
                 sb.append("<script src=\"assets/js/app.js\"></script>");
 
-                exchange.getResponseSender().send(sb.toString());
+                returnHtml(exchange, sb.toString());
             }
         };
+    }
+
+    private static void returnHtml(final HttpServerExchange exchange, final String content) {
+        exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, "text/html");
+        exchange.getResponseSender().send(content);
     }
 
     public static HttpHandler authenticatedHandler = new HttpHandler() {
         @Override
         public void handleRequest(HttpServerExchange exchange) throws Exception {
+
             StringBuilder sb = new StringBuilder();
             sb.append("<h1>protected area</h1>");
             sb.append("<a href=\"..\">Back</a><br />");
@@ -106,7 +114,7 @@ public class DemoHandlers {
             sb.append(StorageHelper.getProfile(exchange));
             sb.append("<br />");
 
-            exchange.getResponseSender().send(sb.toString());
+            returnHtml(exchange, sb.toString());
         }
     };
 
@@ -138,8 +146,24 @@ public class DemoHandlers {
                 sb.append("<input type=\"submit\" name=\"submit\" value=\"Submit\" />");
                 sb.append("</form>");
 
-                exchange.getResponseSender().send(sb.toString());
+                returnHtml(exchange, sb.toString());
             }
         };
+    }
+
+    private static void handle403(final HttpServerExchange exchange) {
+        exchange.addDefaultResponseListener(new DefaultResponseListener() {
+            @Override
+            public boolean handleDefaultResponse(final HttpServerExchange exchange) {
+                if (!exchange.isResponseChannelAvailable()) {
+                    return false;
+                }
+                if (exchange.getResponseCode() == 403) {
+                    returnHtml(exchange, "Forbidden");
+                    return true;
+                }
+                return false;
+            }
+        });
     }
 }
