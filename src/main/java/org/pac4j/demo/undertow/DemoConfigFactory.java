@@ -1,10 +1,12 @@
 package org.pac4j.demo.undertow;
 
 import org.pac4j.cas.client.CasClient;
-import org.pac4j.core.authorization.RequireAnyRoleAuthorizer;
+import org.pac4j.core.authorization.authorizer.RequireAnyRoleAuthorizer;
 import org.pac4j.core.client.Clients;
+import org.pac4j.core.client.direct.AnonymousClient;
 import org.pac4j.core.config.Config;
 import org.pac4j.core.config.ConfigFactory;
+import org.pac4j.core.matching.ExcludedPathMatcher;
 import org.pac4j.http.client.direct.DirectBasicAuthClient;
 import org.pac4j.http.client.direct.ParameterClient;
 import org.pac4j.http.client.indirect.FormClient;
@@ -27,6 +29,7 @@ public class DemoConfigFactory implements ConfigFactory {
         oidcClient.setUseNonce(true);
         //oidcClient.setPreferredJwsAlgorithm(JWSAlgorithm.RS256);
         oidcClient.addCustomParam("prompt", "consent");
+        oidcClient.setAuthorizationGenerator(profile -> profile.addRole("ROLE_ADMIN"));
 
         final SAML2ClientConfiguration cfg = new SAML2ClientConfiguration("resource:samlKeystore.jks",
                 "pac4j-demo-passwd",
@@ -54,12 +57,15 @@ public class DemoConfigFactory implements ConfigFactory {
         // basic auth
         final DirectBasicAuthClient directBasicAuthClient = new DirectBasicAuthClient(new SimpleTestUsernamePasswordAuthenticator());
 
-        final Clients clients = new Clients("http://localhost:8080/callback", saml2Client, facebookClient,
-                twitterClient, formClient, indirectBasicAuthClient, casClient, parameterClient, directBasicAuthClient, oidcClient);
+        final AnonymousClient anonymousClient = new AnonymousClient();
+
+        final Clients clients = new Clients("http://localhost:8080/callback", saml2Client, facebookClient, twitterClient,
+                formClient, indirectBasicAuthClient, casClient, parameterClient, directBasicAuthClient, oidcClient, anonymousClient);
 
         final Config config = new Config(clients);
         config.addAuthorizer("admin", new RequireAnyRoleAuthorizer("ROLE_ADMIN"));
         config.addAuthorizer("custom", new CustomAuthorizer());
+        config.addMatcher("excludedPath", new ExcludedPathMatcher("^/facebook/notprotected$"));
         return config;
     }
 }
