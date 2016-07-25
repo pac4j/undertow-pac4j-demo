@@ -5,15 +5,17 @@ import io.undertow.Undertow;
 import io.undertow.server.handlers.PathHandler;
 import io.undertow.server.handlers.resource.ClassPathResourceManager;
 
+import io.undertow.server.session.InMemorySessionManager;
+import io.undertow.server.session.SessionAttachmentHandler;
+import io.undertow.server.session.SessionCookieConfig;
 import org.pac4j.core.config.Config;
-import org.pac4j.undertow.context.UndertowSessionStore;
 import org.pac4j.undertow.handler.ApplicationLogoutHandler;
 import org.pac4j.undertow.handler.CallbackHandler;
 import org.pac4j.undertow.handler.SecurityHandler;
 
 /**
  * Undertow demo server demonstrating how to integrate pac4j.
- * 
+ *
  * @author Michael Remond
  * @since 1.0.0
  */
@@ -57,7 +59,7 @@ public class DemoServer {
         path.addExactPath("/forceLogin", DemoHandlers.forceLoginHandler(config));
 
         Undertow server = Undertow.builder().addHttpListener(8080, "localhost")
-                .setHandler(UndertowSessionStore.addDefaultSessionHandler(new ErrorHandler(path))).build();
+                .setHandler(new SessionAttachmentHandler(new ErrorHandler(path), new InMemorySessionManager("SessionManager"), new SessionCookieConfig())).build();
         server.start();
     }
 }

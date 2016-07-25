@@ -65,7 +65,6 @@ public class DemoConfigFactory implements ConfigFactory {
         final Config config = new Config(clients);
         config.addAuthorizer("admin", new RequireAnyRoleAuthorizer("ROLE_ADMIN"));
         config.addAuthorizer("custom", new CustomAuthorizer());
-        config.addMatcher("excludedPath", new ExcludedPathMatcher("^/facebook/notprotected$"));
         return config;
     }
 }
