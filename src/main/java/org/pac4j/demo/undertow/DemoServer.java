@@ -5,15 +5,17 @@ import io.undertow.Undertow;
 import io.undertow.server.handlers.PathHandler;
 import io.undertow.server.handlers.resource.ClassPathResourceManager;
 
+import io.undertow.server.session.InMemorySessionManager;
+import io.undertow.server.session.SessionAttachmentHandler;
+import io.undertow.server.session.SessionCookieConfig;
 import org.pac4j.core.config.Config;
-import org.pac4j.undertow.SecurityMechanism;
-import org.pac4j.undertow.handlers.ApplicationLogoutHandler;
-import org.pac4j.undertow.handlers.CallbackHandler;
-import org.pac4j.undertow.session.UndertowSessionStore;
+import org.pac4j.undertow.handler.ApplicationLogoutHandler;
+import org.pac4j.undertow.handler.CallbackHandler;
+import org.pac4j.undertow.handler.SecurityHandler;
 
 /**
  * Undertow demo server demonstrating how to integrate pac4j.
- * 
+ *
  * @author Michael Remond
  * @since 1.0.0
  */
@@ -24,54 +26,40 @@ public class DemoServer {
     public static void main(final String[] args) {
 
         final Config config = new DemoConfigFactory().build();
-        final UndertowSessionStore sessionStore = new UndertowSessionStore();
-        config.setSessionStore(sessionStore);
 
         PathHandler path = new PathHandler();
 
-        path.addExactPath("/", new ErrorHandler(DemoHandlers.indexHandler(config)));
+        path.addExactPath("/", SecurityHandler.build(DemoHandlers.indexHandler(), config, "AnonymousClient"));
+        path.addExactPath("/index.html", SecurityHandler.build(DemoHandlers.indexHandler(), config, "AnonymousClient"));
 
-        path.addExactPath("/facebook/notprotected.html",
-                new ErrorHandler(DemoHandlers.authenticatedHandler));
-        path.addPrefixPath("/facebook/",
-                new ErrorHandler(SecurityMechanism.build(DemoHandlers.authenticatedHandler, config, "FacebookClient")));
-        path.addExactPath("/facebookadmin/index.html",
-                new ErrorHandler(SecurityMechanism.build(DemoHandlers.authenticatedHandler, config, "FacebookClient", "admin")));
-        path.addExactPath("/facebookcustom/index.html",
-                new ErrorHandler(SecurityMechanism.build(DemoHandlers.authenticatedHandler, config, "FacebookClient", "custom")));
-        path.addExactPath("/twitter/index.html",
-                new ErrorHandler(SecurityMechanism.build(DemoHandlers.authenticatedHandler, config, "TwitterClient,FacebookClient")));
-        path.addExactPath("/form/index.html",
-                new ErrorHandler(SecurityMechanism.build(DemoHandlers.authenticatedHandler, config, "FormClient")));
-        path.addExactPath("/form/index.html.json",
-                new ErrorHandler(SecurityMechanism.build(DemoHandlers.authenticatedJsonHandler, config, "FormClient")));
-        path.addExactPath("/basicauth/index.html", new ErrorHandler(SecurityMechanism.build(
-                DemoHandlers.authenticatedHandler, config, "IndirectBasicAuthClient")));
-        path.addExactPath("/cas/index.html",
-                new ErrorHandler(SecurityMechanism.build(DemoHandlers.authenticatedHandler, config, "CasClient")));
-        path.addExactPath("/saml2/index.html",
-                new ErrorHandler(SecurityMechanism.build(DemoHandlers.authenticatedHandler, config, "SAML2Client")));
-        path.addExactPath("/oidc/index.html",
-                new ErrorHandler(SecurityMechanism.build(DemoHandlers.authenticatedHandler, config, "OidcClient")));
-        path.addExactPath("/protected/index.html",
-                new ErrorHandler(SecurityMechanism.build(DemoHandlers.authenticatedHandler, config)));
+        path.addExactPath("/facebook/notprotected.html", DemoHandlers.protectedIndex);
+        path.addExactPath("/facebook/index.html", SecurityHandler.build(DemoHandlers.protectedIndex, config, "FacebookClient"));
+        path.addExactPath("/facebook/notprotected.html", SecurityHandler.build(DemoHandlers.notProtectedIndex, config, "AnonymousClient"));
+        path.addExactPath("/facebookadmin/index.html", SecurityHandler.build(DemoHandlers.protectedIndex, config, "FacebookClient", "admin"));
+        path.addExactPath("/facebookcustom/index.html", SecurityHandler.build(DemoHandlers.protectedIndex, config, "FacebookClient", "custom"));
+        path.addExactPath("/twitter/index.html", SecurityHandler.build(DemoHandlers.protectedIndex, config, "TwitterClient,FacebookClient"));
+        path.addExactPath("/form/index.html", SecurityHandler.build(DemoHandlers.protectedIndex, config, "FormClient"));
+        path.addExactPath("/form/index.html.json", SecurityHandler.build(DemoHandlers.authenticatedJsonHandler, config, "FormClient"));
+        path.addExactPath("/basicauth/index.html", SecurityHandler.build(DemoHandlers.protectedIndex, config, "IndirectBasicAuthClient"));
+        path.addExactPath("/cas/index.html", SecurityHandler.build(DemoHandlers.protectedIndex, config, "CasClient"));
+        path.addExactPath("/saml2/index.html", SecurityHandler.build(DemoHandlers.protectedIndex, config, "SAML2Client"));
+        path.addExactPath("/oidc/index.html", SecurityHandler.build(DemoHandlers.protectedIndex, config, "OidcClient"));
+        path.addExactPath("/protected/index.html", SecurityHandler.build(DemoHandlers.protectedIndex, config));
 
-        path.addExactPath("/dba/index.html",
-                new ErrorHandler(SecurityMechanism.build(DemoHandlers.authenticatedHandler, config, "DirectBasicAuthClient,ParameterClient")));
-        path.addExactPath("/rest-jwt/index.html",
-                new ErrorHandler(SecurityMechanism.build(DemoHandlers.authenticatedHandler, config, "ParameterClient")));
+        path.addExactPath("/dba/index.html", SecurityHandler.build(DemoHandlers.protectedIndex, config, "DirectBasicAuthClient,ParameterClient"));
+        path.addExactPath("/rest-jwt/index.html", SecurityHandler.build(DemoHandlers.protectedIndex, config, "ParameterClient"));
 
-        path.addExactPath("/callback",new ErrorHandler(CallbackHandler.build(config)));
-        path.addExactPath("/logout", new ErrorHandler(new ApplicationLogoutHandler(config)));
+        path.addExactPath("/callback", CallbackHandler.build(config, null, true));
+        path.addExactPath("/logout", new ApplicationLogoutHandler(config, "/?defaulturlafterlogout"));
 
-        path.addPrefixPath("/assets/js",
-                new ErrorHandler(Handlers.resource(new ClassPathResourceManager(DemoServer.class.getClassLoader()))));
+        path.addPrefixPath("/assets/js", Handlers.resource(new ClassPathResourceManager(DemoServer.class.getClassLoader())));
 
-        path.addExactPath("/loginForm.html", new ErrorHandler(DemoHandlers.formHandler(config)));
-        path.addExactPath("/jwt.html", new ErrorHandler(DemoHandlers.jwtHandler()));
+        path.addExactPath("/loginForm.html", DemoHandlers.loginFormHandler(config));
+        path.addExactPath("/jwt.html", SecurityHandler.build(DemoHandlers.jwtHandler(), config, "AnonymousClient"));
+        path.addExactPath("/forceLogin", DemoHandlers.forceLoginHandler(config));
 
         Undertow server = Undertow.builder().addHttpListener(8080, "localhost")
-                .setHandler(sessionStore.addSessionHandler(path)).build();
+                .setHandler(new SessionAttachmentHandler(new ErrorHandler(path), new InMemorySessionManager("SessionManager"), new SessionCookieConfig())).build();
         server.start();
     }
 }
