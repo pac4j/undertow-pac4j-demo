@@ -1,6 +1,7 @@
 package org.pac4j.demo.undertow;
 
 import org.pac4j.cas.client.CasClient;
+import org.pac4j.cas.config.CasConfiguration;
 import org.pac4j.core.authorization.authorizer.RequireAnyRoleAuthorizer;
 import org.pac4j.core.client.Clients;
 import org.pac4j.core.client.direct.AnonymousClient;
@@ -11,24 +12,29 @@ import org.pac4j.http.client.direct.ParameterClient;
 import org.pac4j.http.client.indirect.FormClient;
 import org.pac4j.http.client.indirect.IndirectBasicAuthClient;
 import org.pac4j.http.credentials.authenticator.test.SimpleTestUsernamePasswordAuthenticator;
+import org.pac4j.jwt.config.signature.SecretSignatureConfiguration;
 import org.pac4j.jwt.credentials.authenticator.JwtAuthenticator;
 import org.pac4j.oauth.client.FacebookClient;
 import org.pac4j.oauth.client.TwitterClient;
 import org.pac4j.oidc.client.OidcClient;
+import org.pac4j.oidc.config.OidcConfiguration;
+import org.pac4j.oidc.profile.OidcProfile;
 import org.pac4j.saml.client.SAML2Client;
 import org.pac4j.saml.client.SAML2ClientConfiguration;
 
 public class DemoConfigFactory implements ConfigFactory {
 
-    public Config build() {
-        final OidcClient oidcClient = new OidcClient();
-        oidcClient.setClientID("343992089165-sp0l1km383i8cbm2j5nn20kbk5dk8hor.apps.googleusercontent.com");
-        oidcClient.setSecret("uR3D8ej1kIRPbqAFaxIE3HWh");
-        oidcClient.setDiscoveryURI("https://accounts.google.com/.well-known/openid-configuration");
-        oidcClient.setUseNonce(true);
-        //oidcClient.setPreferredJwsAlgorithm(JWSAlgorithm.RS256);
-        oidcClient.addCustomParam("prompt", "consent");
-        oidcClient.setAuthorizationGenerator(profile -> profile.addRole("ROLE_ADMIN"));
+    public Config build(Object... parameters) {
+        final OidcConfiguration oidcConfiguration = new OidcConfiguration();
+        oidcConfiguration.setClientId("343992089165-sp0l1km383i8cbm2j5nn20kbk5dk8hor.apps.googleusercontent.com");
+        oidcConfiguration.setSecret("uR3D8ej1kIRPbqAFaxIE3HWh");
+        oidcConfiguration.setDiscoveryURI("https://accounts.google.com/.well-known/openid-configuration");
+        oidcConfiguration.setUseNonce(true);
+        //oidcConfiguration.setPreferredJwsAlgorithm(JWSAlgorithm.RS256);
+        oidcConfiguration.addCustomParam("prompt", "consent");
+        
+        final OidcClient<OidcProfile> oidcClient = new OidcClient<>(oidcConfiguration);
+        oidcClient.setAuthorizationGenerator((context, profile) -> {profile.addRole("ROLE_ADMIN"); return profile;});
 
         final SAML2ClientConfiguration cfg = new SAML2ClientConfiguration("resource:samlKeystore.jks",
                 "pac4j-demo-passwd",
@@ -46,10 +52,11 @@ public class DemoConfigFactory implements ConfigFactory {
         final IndirectBasicAuthClient indirectBasicAuthClient = new IndirectBasicAuthClient(new SimpleTestUsernamePasswordAuthenticator());
 
         // CAS
-        final CasClient casClient = new CasClient("https://casserverpac4j.herokuapp.com/login");
+        final CasConfiguration casConfiguration = new CasConfiguration("https://casserverpac4j.herokuapp.com/login");
+        final CasClient casClient = new CasClient(casConfiguration);
 
         // REST authent with JWT for a token passed in the url as the token parameter
-        ParameterClient parameterClient = new ParameterClient("token", new JwtAuthenticator(DemoServer.JWT_SALT));
+        ParameterClient parameterClient = new ParameterClient("token", new JwtAuthenticator(new SecretSignatureConfiguration(DemoServer.JWT_SALT)));
         parameterClient.setSupportGetRequest(true);
         parameterClient.setSupportPostRequest(false);
 

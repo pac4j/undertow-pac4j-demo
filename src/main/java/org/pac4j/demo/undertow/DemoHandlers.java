@@ -17,6 +17,7 @@ import org.pac4j.undertow.account.Pac4jAccount;
 import org.pac4j.undertow.context.UndertowWebContext;
 
 import java.util.List;
+import org.pac4j.jwt.config.signature.SecretSignatureConfiguration;
 
 /**
  * A collection of basic handlers printing dynamic html for the demo application.
@@ -152,7 +153,7 @@ public class DemoHandlers {
             String token = "";
             final Pac4jAccount account = getAccount(exchange);
             if (account != null) {
-                final JwtGenerator jwtGenerator = new JwtGenerator(DemoServer.JWT_SALT);
+                final JwtGenerator jwtGenerator = new JwtGenerator(new SecretSignatureConfiguration(DemoServer.JWT_SALT));
                 token = jwtGenerator.generate(account.getProfile());
             }
             StringBuilder sb = new StringBuilder();
