@@ -9,7 +9,7 @@ import io.undertow.server.session.InMemorySessionManager;
 import io.undertow.server.session.SessionAttachmentHandler;
 import io.undertow.server.session.SessionCookieConfig;
 import org.pac4j.core.config.Config;
-import org.pac4j.undertow.handler.ApplicationLogoutHandler;
+import org.pac4j.undertow.handler.LogoutHandler;
 import org.pac4j.undertow.handler.CallbackHandler;
 import org.pac4j.undertow.handler.SecurityHandler;
 
@@ -50,7 +50,7 @@ public class DemoServer {
         path.addExactPath("/rest-jwt/index.html", SecurityHandler.build(DemoHandlers.protectedIndex, config, "ParameterClient"));
 
         path.addExactPath("/callback", CallbackHandler.build(config, null, true));
-        path.addExactPath("/logout", new ApplicationLogoutHandler(config, "/?defaulturlafterlogout"));
+        path.addExactPath("/logout", new LogoutHandler(config, "/?defaulturlafterlogout"));
 
         path.addPrefixPath("/assets/js", Handlers.resource(new ClassPathResourceManager(DemoServer.class.getClassLoader())));
 
