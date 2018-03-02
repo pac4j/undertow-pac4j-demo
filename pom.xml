@@ -112,7 +112,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.5.1</version>
+				<version>3.7.0</version>
 				<configuration>
 					<source>${java.version}</source>
 					<target>${java.version}</target>
@@ -121,7 +121,7 @@
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>exec-maven-plugin</artifactId>
-				<version>1.5.0</version>
+				<version>1.6.0</version>
 				<configuration>
 					<mainClass>org.pac4j.demo.undertow.DemoServer</mainClass>
 				</configuration>
