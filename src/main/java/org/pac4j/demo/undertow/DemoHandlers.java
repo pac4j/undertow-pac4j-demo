@@ -7,8 +7,8 @@ import io.undertow.server.HttpServerExchange;
 import io.undertow.util.HttpString;
 
 import org.pac4j.core.client.Client;
-import org.pac4j.core.client.Clients;
 import org.pac4j.core.config.Config;
+import org.pac4j.core.context.Pac4jConstants;
 import org.pac4j.core.exception.HttpAction;
 import org.pac4j.core.profile.CommonProfile;
 import org.pac4j.http.client.indirect.FormClient;
@@ -135,7 +135,7 @@ public class DemoHandlers {
             FormClient formClient = (FormClient) config.getClients().findClient("FormClient");
             StringBuilder sb = new StringBuilder();
             sb.append("<html><body>");
-            sb.append("<form action=\"").append(formClient.getCallbackUrl()).append("\" method=\"POST\">");
+            sb.append("<form action=\"").append(formClient.getCallbackUrl()).append("?client_name=FormClient\" method=\"POST\">");
             sb.append("<input type=\"text\" name=\"username\" value=\"\" />");
             sb.append("<p />");
             sb.append("<input type=\"password\" name=\"password\" value=\"\" />");
@@ -170,7 +170,7 @@ public class DemoHandlers {
     public static HttpHandler forceLoginHandler(final Config config) {
         return exchange -> {
             final UndertowWebContext context = new UndertowWebContext(exchange);
-            final String clientName = context.getRequestParameter(Clients.DEFAULT_CLIENT_NAME_PARAMETER) ;
+            final String clientName = context.getRequestParameter(Pac4jConstants.DEFAULT_CLIENT_NAME_PARAMETER) ;
             final Client client = config.getClients().findClient(clientName);
             try {
                 client.redirect(context);

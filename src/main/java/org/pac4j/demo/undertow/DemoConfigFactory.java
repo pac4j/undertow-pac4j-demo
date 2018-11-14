@@ -18,7 +18,6 @@ import org.pac4j.oauth.client.FacebookClient;
 import org.pac4j.oauth.client.TwitterClient;
 import org.pac4j.oidc.client.OidcClient;
 import org.pac4j.oidc.config.OidcConfiguration;
-import org.pac4j.oidc.profile.OidcProfile;
 import org.pac4j.saml.client.SAML2Client;
 import org.pac4j.saml.client.SAML2ClientConfiguration;
 
@@ -33,7 +32,7 @@ public class DemoConfigFactory implements ConfigFactory {
         //oidcConfiguration.setPreferredJwsAlgorithm(JWSAlgorithm.RS256);
         oidcConfiguration.addCustomParam("prompt", "consent");
         
-        final OidcClient<OidcProfile> oidcClient = new OidcClient<>(oidcConfiguration);
+        final OidcClient oidcClient = new OidcClient<>(oidcConfiguration);
         oidcClient.setAuthorizationGenerator((context, profile) -> {profile.addRole("ROLE_ADMIN"); return profile;});
 
         final SAML2ClientConfiguration cfg = new SAML2ClientConfiguration("resource:samlKeystore.jks",
