@@ -19,7 +19,9 @@ import org.pac4j.oauth.client.TwitterClient;
 import org.pac4j.oidc.client.OidcClient;
 import org.pac4j.oidc.config.OidcConfiguration;
 import org.pac4j.saml.client.SAML2Client;
-import org.pac4j.saml.client.SAML2ClientConfiguration;
+import org.pac4j.saml.config.SAML2Configuration;
+
+import java.util.Optional;
 
 public class DemoConfigFactory implements ConfigFactory {
 
@@ -33,9 +35,9 @@ public class DemoConfigFactory implements ConfigFactory {
         oidcConfiguration.addCustomParam("prompt", "consent");
         
         final OidcClient oidcClient = new OidcClient<>(oidcConfiguration);
-        oidcClient.setAuthorizationGenerator((context, profile) -> {profile.addRole("ROLE_ADMIN"); return profile;});
+        oidcClient.setAuthorizationGenerator((context, profile) -> {profile.addRole("ROLE_ADMIN"); return Optional.of(profile);});
 
-        final SAML2ClientConfiguration cfg = new SAML2ClientConfiguration("resource:samlKeystore.jks",
+        final SAML2Configuration cfg = new SAML2Configuration("resource:samlKeystore.jks",
                 "pac4j-demo-passwd",
                 "pac4j-demo-passwd",
                 "resource:metadata-okta.xml");

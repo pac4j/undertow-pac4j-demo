@@ -4,12 +4,13 @@ import io.undertow.security.api.SecurityContext;
 import io.undertow.security.idm.Account;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
+import io.undertow.util.Headers;
 import io.undertow.util.HttpString;
 
 import org.pac4j.core.client.Client;
 import org.pac4j.core.config.Config;
-import org.pac4j.core.context.Pac4jConstants;
-import org.pac4j.core.exception.HttpAction;
+import org.pac4j.core.exception.http.HttpAction;
+import org.pac4j.core.util.Pac4jConstants;
 import org.pac4j.core.profile.CommonProfile;
 import org.pac4j.http.client.indirect.FormClient;
 import org.pac4j.jwt.profile.JwtGenerator;
@@ -18,6 +19,7 @@ import org.pac4j.undertow.context.UndertowWebContext;
 
 import java.util.List;
 import org.pac4j.jwt.config.signature.SecretSignatureConfiguration;
+import org.pac4j.undertow.http.UndertowHttpActionAdapter;
 
 /**
  * A collection of basic handlers printing dynamic html for the demo application.
@@ -65,6 +67,7 @@ public class DemoHandlers {
     }
 
     private static void sendEnd(final HttpServerExchange exchange, final StringBuilder sb) {
+        exchange.getResponseHeaders().add(Headers.CONTENT_TYPE, "text/html; charset=utf-8");
         exchange.getResponseSender().send(sb.toString());
         exchange.endExchange();
     }
@@ -132,7 +135,7 @@ public class DemoHandlers {
 
     public static HttpHandler loginFormHandler(final Config config) {
         return exchange -> {
-            FormClient formClient = (FormClient) config.getClients().findClient("FormClient");
+            FormClient formClient = (FormClient) config.getClients().findClient("FormClient").get();
             StringBuilder sb = new StringBuilder();
             sb.append("<html><body>");
             sb.append("<form action=\"").append(formClient.getCallbackUrl()).append("?client_name=FormClient\" method=\"POST\">");
@@ -170,12 +173,15 @@ public class DemoHandlers {
     public static HttpHandler forceLoginHandler(final Config config) {
         return exchange -> {
             final UndertowWebContext context = new UndertowWebContext(exchange);
-            final String clientName = context.getRequestParameter(Pac4jConstants.DEFAULT_CLIENT_NAME_PARAMETER) ;
-            final Client client = config.getClients().findClient(clientName);
+            final String clientName = context.getRequestParameter(Pac4jConstants.DEFAULT_CLIENT_NAME_PARAMETER).get();
+            final Client client = config.getClients().findClient(clientName).get();
+            HttpAction action;
             try {
-                client.redirect(context);
+                action = (HttpAction) client.getRedirectionAction(context).get();
             } catch (final HttpAction e) {
+                action = e;
             }
+            UndertowHttpActionAdapter.INSTANCE.adapt(action, context);
         };
     }
 
