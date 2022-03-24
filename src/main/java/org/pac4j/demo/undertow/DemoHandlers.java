@@ -10,11 +10,12 @@ import io.undertow.util.HttpString;
 import org.pac4j.core.client.Client;
 import org.pac4j.core.config.Config;
 import org.pac4j.core.exception.http.HttpAction;
+import org.pac4j.core.profile.UserProfile;
 import org.pac4j.core.util.Pac4jConstants;
-import org.pac4j.core.profile.CommonProfile;
 import org.pac4j.http.client.indirect.FormClient;
 import org.pac4j.jwt.profile.JwtGenerator;
 import org.pac4j.undertow.account.Pac4jAccount;
+import org.pac4j.undertow.context.UndertowSessionStore;
 import org.pac4j.undertow.context.UndertowWebContext;
 
 import java.util.List;
@@ -117,7 +118,7 @@ public class DemoHandlers {
         return null;
     }
 
-    private static List<CommonProfile> getProfiles(final HttpServerExchange exchange) {
+    private static List<UserProfile> getProfiles(final HttpServerExchange exchange) {
         final Pac4jAccount account = getAccount(exchange);
         if (account != null) {
             return account.getProfiles();
@@ -125,7 +126,7 @@ public class DemoHandlers {
         return null;
     }
 
-    private static CommonProfile getProfile(final HttpServerExchange exchange) {
+    private static UserProfile getProfile(final HttpServerExchange exchange) {
         final Pac4jAccount account = getAccount(exchange);
         if (account != null) {
             return account.getProfile();
@@ -173,11 +174,12 @@ public class DemoHandlers {
     public static HttpHandler forceLoginHandler(final Config config) {
         return exchange -> {
             final UndertowWebContext context = new UndertowWebContext(exchange);
+            final UndertowSessionStore sessionStore = new UndertowSessionStore(exchange);
             final String clientName = context.getRequestParameter(Pac4jConstants.DEFAULT_CLIENT_NAME_PARAMETER).get();
             final Client client = config.getClients().findClient(clientName).get();
             HttpAction action;
             try {
-                action = (HttpAction) client.getRedirectionAction(context).get();
+                action = client.getRedirectionAction(context, sessionStore).get();
             } catch (final HttpAction e) {
                 action = e;
             }

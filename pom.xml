@@ -4,15 +4,15 @@
 
 	<groupId>org.pac4j</groupId>
 	<artifactId>undertow-pac4j-demo</artifactId>
-	<version>4.1.0-SNAPSHOT</version>
+	<version>5.0.0-SNAPSHOT</version>
 	<packaging>jar</packaging>
 	<name>undertow-pac4j-demo</name>
 
 	<properties>
-		<pac4j.version>4.5.5</pac4j.version>
-		<undertow-pac4j.version>4.1.1</undertow-pac4j.version>
+		<pac4j.version>5.4.0-SNAPSHOT</pac4j.version>
+		<undertow-pac4j.version>5.0.0-SNAPSHOT</undertow-pac4j.version>
 		<undertow.version>2.2.16.Final</undertow.version>
-		<java.version>1.8</java.version>
+		<java.version>11</java.version>
 	</properties>
 
 	<repositories>
@@ -42,12 +42,12 @@
 		</dependency>
 		<dependency>
 			<groupId>org.pac4j</groupId>
-			<artifactId>pac4j-oauth</artifactId>
+			<artifactId>pac4j-core</artifactId>
 			<version>${pac4j.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.pac4j</groupId>
-			<artifactId>pac4j-openid</artifactId>
+			<artifactId>pac4j-oauth</artifactId>
 			<version>${pac4j.version}</version>
 		</dependency>
 		<dependency>
@@ -57,7 +57,7 @@
 		</dependency>
 		<dependency>
 			<groupId>org.pac4j</groupId>
-			<artifactId>pac4j-saml-opensamlv3</artifactId>
+			<artifactId>pac4j-saml</artifactId>
 			<version>${pac4j.version}</version>
 		</dependency>
 		<dependency>

@@ -49,7 +49,7 @@ public class DemoServer {
         path.addExactPath("/dba/index.html", SecurityHandler.build(DemoHandlers.protectedIndex, config, "DirectBasicAuthClient,ParameterClient"));
         path.addExactPath("/rest-jwt/index.html", SecurityHandler.build(DemoHandlers.protectedIndex, config, "ParameterClient"));
 
-        path.addExactPath("/callback", CallbackHandler.build(config, null, true));
+        path.addExactPath("/callback", CallbackHandler.build(config, null));
         path.addExactPath("/logout", new LogoutHandler(config, "/?defaulturlafterlogout"));
 
         path.addPrefixPath("/assets/js", Handlers.resource(new ClassPathResourceManager(DemoServer.class.getClassLoader())));
