@@ -33,7 +33,9 @@ public class DemoConfigFactory implements ConfigFactory {
         oidcConfiguration.setUseNonce(true);
         //oidcConfiguration.setPreferredJwsAlgorithm(JWSAlgorithm.RS256);
         oidcConfiguration.addCustomParam("prompt", "consent");
-        
+        oidcConfiguration.setResponseType("code");
+        oidcConfiguration.setResponseMode("form_post");
+
         final OidcClient oidcClient = new OidcClient(oidcConfiguration);
         oidcClient.setAuthorizationGenerator((ctx, session, profile) -> { profile.addRole("ROLE_ADMIN"); return Optional.of(profile); });
 
