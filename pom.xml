@@ -9,7 +9,7 @@
 	<name>undertow-pac4j-demo</name>
 
 	<properties>
-		<pac4j.version>5.7.1</pac4j.version>
+		<pac4j.version>5.7.2</pac4j.version>
 		<undertow-pac4j.version>5.0.1</undertow-pac4j.version>
 		<undertow.version>2.3.10.Final</undertow.version>
 		<java.version>11</java.version>
