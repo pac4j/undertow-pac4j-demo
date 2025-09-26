@@ -17,6 +17,7 @@ import org.pac4j.jwt.profile.JwtGenerator;
 import org.pac4j.undertow.account.Pac4jAccount;
 import org.pac4j.undertow.context.UndertowSessionStore;
 import org.pac4j.undertow.context.UndertowWebContext;
+import org.pac4j.core.context.CallContext;
 
 import java.util.List;
 import org.pac4j.jwt.config.signature.SecretSignatureConfiguration;
@@ -179,7 +180,7 @@ public class DemoHandlers {
             final Client client = config.getClients().findClient(clientName).get();
             HttpAction action;
             try {
-                action = client.getRedirectionAction(context, sessionStore).get();
+                action = client.getRedirectionAction(new CallContext(context, sessionStore)).get();
             } catch (final HttpAction e) {
                 action = e;
             }
