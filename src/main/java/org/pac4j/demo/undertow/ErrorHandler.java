@@ -3,6 +3,7 @@ package org.pac4j.demo.undertow;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
 import io.undertow.util.Headers;
+import lombok.val;
 
 public class ErrorHandler implements HttpHandler {
 
@@ -22,7 +23,7 @@ public class ErrorHandler implements HttpHandler {
             if (!exchange.isResponseChannelAvailable()) {
                 return false;
             }
-            final int code = exchange.getStatusCode();
+            val code = exchange.getStatusCode();
             if (code == 401) {
                 exchange.getResponseHeaders().add(Headers.CONTENT_TYPE, "text/html; charset=utf-8");
                 exchange.getResponseSender().send(ERROR_401);

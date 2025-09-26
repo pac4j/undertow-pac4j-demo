@@ -8,6 +8,7 @@ import io.undertow.server.handlers.resource.ClassPathResourceManager;
 import io.undertow.server.session.InMemorySessionManager;
 import io.undertow.server.session.SessionAttachmentHandler;
 import io.undertow.server.session.SessionCookieConfig;
+import lombok.val;
 import org.pac4j.core.config.Config;
 import org.pac4j.undertow.handler.LogoutHandler;
 import org.pac4j.undertow.handler.CallbackHandler;
@@ -27,7 +28,7 @@ public class DemoServer {
 
         final Config config = new DemoConfigFactory().build();
 
-        PathHandler path = new PathHandler();
+        val path = new PathHandler();
 
         path.addExactPath("/", SecurityHandler.build(DemoHandlers.indexHandler(), config, "AnonymousClient"));
         path.addExactPath("/index.html", SecurityHandler.build(DemoHandlers.indexHandler(), config, "AnonymousClient"));
@@ -58,7 +59,7 @@ public class DemoServer {
         path.addExactPath("/jwt.html", SecurityHandler.build(DemoHandlers.jwtHandler(), config, "AnonymousClient"));
         path.addExactPath("/forceLogin", DemoHandlers.forceLoginHandler(config));
 
-        Undertow server = Undertow.builder().addHttpListener(8080, "localhost")
+        val server = Undertow.builder().addHttpListener(8080, "localhost")
                 .setHandler(new SessionAttachmentHandler(new ErrorHandler(path), new InMemorySessionManager("SessionManager"), new SessionCookieConfig())).build();
         server.start();
     }

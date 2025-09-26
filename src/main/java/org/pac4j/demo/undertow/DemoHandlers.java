@@ -6,6 +6,7 @@ import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
 import io.undertow.util.Headers;
 import io.undertow.util.HttpString;
+import lombok.val;
 
 import org.pac4j.core.client.Client;
 import org.pac4j.core.config.Config;
@@ -34,7 +35,7 @@ public class DemoHandlers {
     public static HttpHandler indexHandler() {
 
         return exchange -> {
-            StringBuilder sb = new StringBuilder();
+            val sb = new StringBuilder();
 
             sb.append("<h1>index</h1>");
             sb.append("<a href='facebook/index.html'>Protected url by Facebook: facebook/index.html</a> (use a real account)<br />");
@@ -75,7 +76,7 @@ public class DemoHandlers {
     }
 
     public static HttpHandler protectedIndex = exchange -> {
-        StringBuilder sb = new StringBuilder();
+        val sb = new StringBuilder();
         sb.append("<h1>protected area</h1>");
         sb.append("<a href=\"..\">Back</a><br />");
         sb.append("<br /><br />");
@@ -87,7 +88,7 @@ public class DemoHandlers {
     };
 
     public static HttpHandler notProtectedIndex = exchange -> {
-        StringBuilder sb = new StringBuilder();
+        val sb = new StringBuilder();
         sb.append("<h1>not protected area</h1>");
         sb.append("<a href=\"..\">Back</a><br />");
         sb.append("<br /><br />");
@@ -99,7 +100,7 @@ public class DemoHandlers {
     };
 
     public static HttpHandler authenticatedJsonHandler = exchange -> {
-        StringBuilder sb = new StringBuilder();
+        val sb = new StringBuilder();
         sb.append("{\"username\":\"");
         sb.append(getProfile(exchange).getId());
         sb.append("\"}");
@@ -109,9 +110,9 @@ public class DemoHandlers {
     };
 
     private static Pac4jAccount getAccount(final HttpServerExchange exchange) {
-        final SecurityContext securityContext = exchange.getSecurityContext();
+        val securityContext = exchange.getSecurityContext();
         if (securityContext != null) {
-            final Account account = securityContext.getAuthenticatedAccount();
+            val account = securityContext.getAuthenticatedAccount();
             if (account instanceof Pac4jAccount) {
                 return (Pac4jAccount) account;
             }
@@ -120,7 +121,7 @@ public class DemoHandlers {
     }
 
     private static List<UserProfile> getProfiles(final HttpServerExchange exchange) {
-        final Pac4jAccount account = getAccount(exchange);
+        val account = getAccount(exchange);
         if (account != null) {
             return account.getProfiles();
         }
@@ -128,7 +129,7 @@ public class DemoHandlers {
     }
 
     private static UserProfile getProfile(final HttpServerExchange exchange) {
-        final Pac4jAccount account = getAccount(exchange);
+        val account = getAccount(exchange);
         if (account != null) {
             return account.getProfile();
         }
@@ -137,8 +138,8 @@ public class DemoHandlers {
 
     public static HttpHandler loginFormHandler(final Config config) {
         return exchange -> {
-            FormClient formClient = (FormClient) config.getClients().findClient("FormClient").get();
-            StringBuilder sb = new StringBuilder();
+            val formClient = (FormClient) config.getClients().findClient("FormClient").get();
+            val sb = new StringBuilder();
             sb.append("<html><body>");
             sb.append("<form action=\"").append(formClient.getCallbackUrl()).append("?client_name=FormClient\" method=\"POST\">");
             sb.append("<input type=\"text\" name=\"username\" value=\"\" />");
@@ -155,13 +156,10 @@ public class DemoHandlers {
 
     public static HttpHandler jwtHandler() {
         return exchange -> {
-            String token = "";
-            final Pac4jAccount account = getAccount(exchange);
-            if (account != null) {
-                final JwtGenerator jwtGenerator = new JwtGenerator(new SecretSignatureConfiguration(DemoServer.JWT_SALT));
-                token = jwtGenerator.generate(account.getProfile());
-            }
-            StringBuilder sb = new StringBuilder();
+            val account = getAccount(exchange);
+            val token = account != null ? new JwtGenerator(new SecretSignatureConfiguration(DemoServer.JWT_SALT))
+                    .generate(account.getProfile()) : "";
+            val sb = new StringBuilder();
             sb.append("<h1>Generate JWT token</h1>");
             sb.append("<a href='..'>Back</a><br />");
             sb.append("<br /><br />");
@@ -174,10 +172,10 @@ public class DemoHandlers {
 
     public static HttpHandler forceLoginHandler(final Config config) {
         return exchange -> {
-            final UndertowWebContext context = new UndertowWebContext(exchange);
-            final UndertowSessionStore sessionStore = new UndertowSessionStore(exchange);
-            final String clientName = context.getRequestParameter(Pac4jConstants.DEFAULT_CLIENT_NAME_PARAMETER).get();
-            final Client client = config.getClients().findClient(clientName).get();
+            val context = new UndertowWebContext(exchange);
+            val sessionStore = new UndertowSessionStore(exchange);
+            val clientName = context.getRequestParameter(Pac4jConstants.DEFAULT_CLIENT_NAME_PARAMETER).get();
+            val client = config.getClients().findClient(clientName).get();
             HttpAction action;
             try {
                 action = client.getRedirectionAction(new CallContext(context, sessionStore)).get();
