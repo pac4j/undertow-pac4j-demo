@@ -9,6 +9,7 @@ import io.undertow.util.HttpString;
 
 import org.pac4j.core.client.Client;
 import org.pac4j.core.config.Config;
+import org.pac4j.core.context.CallContext;
 import org.pac4j.core.exception.http.HttpAction;
 import org.pac4j.core.profile.UserProfile;
 import org.pac4j.core.util.Pac4jConstants;
@@ -175,11 +176,12 @@ public class DemoHandlers {
         return exchange -> {
             final UndertowWebContext context = new UndertowWebContext(exchange);
             final UndertowSessionStore sessionStore = new UndertowSessionStore(exchange);
+            final CallContext callContext = new CallContext(context, sessionStore);
             final String clientName = context.getRequestParameter(Pac4jConstants.DEFAULT_CLIENT_NAME_PARAMETER).get();
             final Client client = config.getClients().findClient(clientName).get();
             HttpAction action;
             try {
-                action = client.getRedirectionAction(context, sessionStore).get();
+                action = client.getRedirectionAction(callContext).get();
             } catch (final HttpAction e) {
                 action = e;
             }
