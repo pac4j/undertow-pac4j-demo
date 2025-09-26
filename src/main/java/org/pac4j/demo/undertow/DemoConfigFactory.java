@@ -7,6 +7,8 @@ import org.pac4j.core.client.Clients;
 import org.pac4j.core.client.direct.AnonymousClient;
 import org.pac4j.core.config.Config;
 import org.pac4j.core.config.ConfigFactory;
+import org.pac4j.core.context.CallContext;
+import org.pac4j.core.profile.UserProfile;
 import org.pac4j.http.client.direct.DirectBasicAuthClient;
 import org.pac4j.http.client.direct.ParameterClient;
 import org.pac4j.http.client.indirect.FormClient;
@@ -37,7 +39,7 @@ public class DemoConfigFactory implements ConfigFactory {
         oidcConfiguration.setResponseMode("form_post");
 
         final OidcClient oidcClient = new OidcClient(oidcConfiguration);
-        oidcClient.setAuthorizationGenerator((ctx, session, profile) -> { profile.addRole("ROLE_ADMIN"); return Optional.of(profile); });
+        oidcClient.setAuthorizationGenerator((CallContext ctx, UserProfile profile) -> { profile.addRole("ROLE_ADMIN"); return Optional.of(profile); });
 
         final SAML2Configuration cfg = new SAML2Configuration("resource:samlKeystore.jks",
                 "pac4j-demo-passwd",
