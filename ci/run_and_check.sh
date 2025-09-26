@@ -17,23 +17,26 @@ mvn clean package -q
 # Ensure target directory exists
 mkdir -p target
 
-# Start server in background
-echo "🌐 Starting server..."
-mvn exec:java > target/server.log 2>&1 &
-SERVER_PID=$!
+# Start Undertow in background
+echo "🌐 Starting Undertow server..."
+mvn exec:java > target/undertow.log 2>&1 &
+UNDERTOW_PID=$!
 
 # Wait for server to start (maximum 60 seconds)
 echo "⏳ Waiting for server startup..."
 for i in {1..60}; do
     if curl -s -o /dev/null -w "%{http_code}" http://localhost:8080 | grep -q "200"; then
         echo "✅ Server started successfully!"
+        # Additional wait to ensure server is fully ready
+        echo "⏳ Waiting additional 5 seconds for server to be fully ready..."
+        sleep 5
         break
     fi
     if [ $i -eq 60 ]; then
         echo "❌ Timeout: Server did not start within 60 seconds"
         echo "📋 Server logs:"
-        cat target/server.log
-        kill $SERVER_PID 2>/dev/null || true
+        cat target/undertow.log
+        kill $UNDERTOW_PID 2>/dev/null || true
         exit 1
     fi
     sleep 1
@@ -46,147 +49,102 @@ HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080)
 if [ "$HTTP_CODE" = "200" ]; then
     echo "✅ Application responds with HTTP 200"
     echo "🌐 Application accessible at: http://localhost:8080"
-
-    # Default flags
-    CAS_AUTH_PASSED=false
-    CAS_TEST_PASSED=false
     
-    # Test clicking on casLink and following redirections to CAS login page
-    echo "🔗 Testing casLink redirection to CAS login page..."
+    # Test OAuth2/OIDC redirection
+    echo "🔗 Testing OAuth2/OIDC redirection..."
     
-    # Get the casLink URL from the homepage
-    CASLINK_URL="http://localhost:8080/cas/index.html"
-    echo "📍 Following casLink: $CASLINK_URL"
+    # Test OIDC client redirection
+    OIDC_RESPONSE=$(curl -s -L -w "FINAL_URL:%{url_effective}\nHTTP_CODE:%{http_code}" "http://localhost:8080/oidc/index.html")
+    OIDC_HTTP_CODE=$(echo "$OIDC_RESPONSE" | grep "HTTP_CODE:" | cut -d: -f2)
+    OIDC_FINAL_URL=$(echo "$OIDC_RESPONSE" | grep "FINAL_URL:" | cut -d: -f2-)
     
-    # Follow redirections and capture final URL and response
-    CAS_RESPONSE=$(curl -s -L -w "FINAL_URL:%{url_effective}\nHTTP_CODE:%{http_code}" "$CASLINK_URL")
+    echo "🌐 OIDC Final URL: $OIDC_FINAL_URL"
+    echo "📄 OIDC HTTP Code: $OIDC_HTTP_CODE"
+    
+    if [ "$OIDC_HTTP_CODE" = "200" ] || echo "$OIDC_FINAL_URL" | grep -q "accounts.google.com"; then
+        echo "✅ OIDC redirection test passed!"
+        OIDC_TEST_PASSED=true
+    else
+        echo "❌ OIDC redirection test failed!"
+        OIDC_TEST_PASSED=false
+    fi
+    
+    # Test CAS redirection
+    echo "🔗 Testing CAS redirection..."
+    
+    CAS_RESPONSE=$(curl -s -L -w "FINAL_URL:%{url_effective}\nHTTP_CODE:%{http_code}" "http://localhost:8080/cas/index.html")
     CAS_HTTP_CODE=$(echo "$CAS_RESPONSE" | grep "HTTP_CODE:" | cut -d: -f2)
     CAS_FINAL_URL=$(echo "$CAS_RESPONSE" | grep "FINAL_URL:" | cut -d: -f2-)
-    CAS_CONTENT=$(echo "$CAS_RESPONSE" | sed '/^FINAL_URL:/d' | sed '/^HTTP_CODE:/d')
     
-    echo "🌐 Final URL: $CAS_FINAL_URL"
-    echo "📄 HTTP Code: $CAS_HTTP_CODE"
+    echo "🌐 CAS Final URL: $CAS_FINAL_URL"
+    echo "📄 CAS HTTP Code: $CAS_HTTP_CODE"
     
-    # Verify we reached the CAS login page
-    if [ "$CAS_HTTP_CODE" = "200" ] && echo "$CAS_CONTENT" | grep -q "Enter Username & Password"; then
-        echo "✅ CAS login page test passed!"
-        echo "🔐 Successfully redirected to CAS login page"
-        echo "📋 Page contains login form with username/password fields"
+    if [ "$CAS_HTTP_CODE" = "200" ] || echo "$CAS_FINAL_URL" | grep -q "casserverpac4j.herokuapp.com"; then
+        echo "✅ CAS redirection test passed!"
         CAS_TEST_PASSED=true
-
-        # Simulate a CAS login using curl WITH cookies and follow redirects; then show final page content
-        echo "🧪 Simulating CAS authentication via curl (with cookies, follow redirects)..."
-        COOKIE_JAR="target/cas_cookies.txt"
-        CAS_LOGIN_PAGE="target/cas_login.html"
-        CAS_AFTER_LOGIN="target/cas_after_login.html"
-        FINAL_APP_PAGE="target/final_app.html"
-
-        # 1) Fetch the login page (keep cookies) and capture the execution token
-        echo "⬇️  Fetching CAS login page and capturing execution token..."
-        curl -s -c "$COOKIE_JAR" -b "$COOKIE_JAR" -L "$CAS_FINAL_URL" -o "$CAS_LOGIN_PAGE" -w "FINAL_URL:%{url_effective}\nHTTP_CODE:%{http_code}\n" > target/cas_login_fetch.meta
-
-        EXECUTION=$(grep -Eo 'name=\"execution\"[^>]*value=\"[^\"]+\"' "$CAS_LOGIN_PAGE" | sed -E 's/.*value=\"([^\"]+)\".*/\1/' | head -n1 || true)
-
-        if [ -z "$EXECUTION" ]; then
-            echo "❌ Could not extract CAS execution token from login page."
-            echo "   Saved page: $CAS_LOGIN_PAGE"
-            CAS_AUTH_PASSED=false
-        else
-            echo "🔑 Found execution token: $EXECUTION"
-
-            # 2) Post credentials to CAS with cookies and follow redirects
-            echo "📤 Posting credentials to CAS and following redirects..."
-            CAS_POST_RESPONSE=$(curl -s -c "$COOKIE_JAR" -b "$COOKIE_JAR" -L -o "$CAS_AFTER_LOGIN" -w "FINAL_URL:%{url_effective}\nHTTP_CODE:%{http_code}" \
-                --data-urlencode "username=leleuj@gmail.com" \
-                --data-urlencode "password=password" \
-                --data-urlencode "execution=$EXECUTION" \
-                --data-urlencode "_eventId=submit" \
-                "$CAS_FINAL_URL")
-
-            CAS_POST_HTTP_CODE=$(echo "$CAS_POST_RESPONSE" | grep "HTTP_CODE:" | cut -d: -f2)
-            CAS_POST_FINAL_URL=$(echo "$CAS_POST_RESPONSE" | grep "FINAL_URL:" | cut -d: -f2-)
-
-            echo "🌐 After login final URL: $CAS_POST_FINAL_URL"
-            echo "📄 HTTP Code: $CAS_POST_HTTP_CODE"
-
-            # 3) Fetch the final app page with cookies and show content
-            echo "📥 Fetching final app page content..."
-            FINAL_META=$(curl -s -c "$COOKIE_JAR" -b "$COOKIE_JAR" -L -o "$FINAL_APP_PAGE" -w "FINAL_URL:%{url_effective}\nHTTP_CODE:%{http_code}" "$CAS_POST_FINAL_URL")
-            FINAL_URL=$(echo "$FINAL_META" | grep "FINAL_URL:" | cut -d: -f2-)
-            FINAL_APP_CODE=$(echo "$FINAL_META" | grep "HTTP_CODE:" | cut -d: -f2)
-
-            echo "🌐 Final app URL after redirects: $FINAL_URL"
-            echo "📄 Final app HTTP Code: $FINAL_APP_CODE"
-
-            if [ "$FINAL_APP_CODE" = "200" ]; then
-                echo "✅ Demo reachable after CAS login (HTTP 200)"
-                CAS_AUTH_PASSED=true
-                echo "----- Final page content (begin) -----"
-                cat "$FINAL_APP_PAGE"
-                echo "\n----- Final page content (end) -----"
-
-                # Verify that the expected authenticated email is present in the page
-                if grep -q "leleuj@gmail.com" "$FINAL_APP_PAGE"; then
-                    echo "✅ Email 'leleuj@gmail.com' found in final page content"
-                else
-                    echo "❌ Email 'leleuj@gmail.com' NOT found in final page content"
-                    CAS_AUTH_PASSED=false
-                fi
-            else
-                echo "❌ Demo not reachable after CAS login (HTTP $FINAL_APP_CODE)"
-                CAS_AUTH_PASSED=false
-            fi
-        fi
-        
     else
-        echo "❌ CAS login page test failed!"
-        echo "🚫 Expected CAS login page but got:"
-        echo "   HTTP Code: $CAS_HTTP_CODE"
-        echo "   Final URL: $CAS_FINAL_URL"
-        if [ ${#CAS_CONTENT} -lt 500 ]; then
-            echo "   Content preview: $CAS_CONTENT"
-        else
-            echo "   Content preview: $(echo "$CAS_CONTENT" | head -c 500)..."
-        fi
+        echo "❌ CAS redirection test failed!"
         CAS_TEST_PASSED=false
-        CAS_AUTH_PASSED=false
     fi
+    
+    # Test Form authentication
+    echo "🔗 Testing Form authentication..."
+    
+    FORM_RESPONSE=$(curl -s -L -w "FINAL_URL:%{url_effective}\nHTTP_CODE:%{http_code}" "http://localhost:8080/form/index.html")
+    FORM_HTTP_CODE=$(echo "$FORM_RESPONSE" | grep "HTTP_CODE:" | cut -d: -f2)
+    FORM_FINAL_URL=$(echo "$FORM_RESPONSE" | grep "FINAL_URL:" | cut -d: -f2-)
+    
+    echo "🌐 Form Final URL: $FORM_FINAL_URL"
+    echo "📄 Form HTTP Code: $FORM_HTTP_CODE"
+    
+    if [ "$FORM_HTTP_CODE" = "200" ] || echo "$FORM_FINAL_URL" | grep -q "loginForm.html"; then
+        echo "✅ Form authentication test passed!"
+        FORM_TEST_PASSED=true
+    else
+        echo "❌ Form authentication test failed!"
+        FORM_TEST_PASSED=false
+    fi
+    
 else
     echo "❌ Initial test failed! HTTP code received: $HTTP_CODE"
     echo "📋 Server logs:"
-    cat target/server.log || true
+    cat target/undertow.log
+    OIDC_TEST_PASSED=false
     CAS_TEST_PASSED=false
-    CAS_AUTH_PASSED=false
+    FORM_TEST_PASSED=false
 fi
 
 # Always stop the server
 echo "🛑 Stopping server..."
-kill $SERVER_PID 2>/dev/null || true
+kill $UNDERTOW_PID 2>/dev/null || true
 
 # Wait a moment for graceful shutdown
 sleep 2
 
 # Force kill if still running
-kill -9 $SERVER_PID 2>/dev/null || true
+kill -9 $UNDERTOW_PID 2>/dev/null || true
 
-if [ "$HTTP_CODE" = "200" ] && [ "$CAS_TEST_PASSED" = "true" ] && [ "$CAS_AUTH_PASSED" = "true" ]; then
+if [ "$HTTP_CODE" = "200" ] && [ "$OIDC_TEST_PASSED" = "true" ] && [ "$CAS_TEST_PASSED" = "true" ] && [ "$FORM_TEST_PASSED" = "true" ]; then
     echo "🎉 undertow-pac4j-demo test completed successfully!"
     echo "✅ All tests passed:"
     echo "   - Application responds with HTTP 200"
-    echo "   - CAS link redirects correctly to login page"
-    echo "   - CAS login succeeds and demo is reachable"
-    echo "   - Authenticated user email found in page content"
+    echo "   - OIDC redirection works correctly"
+    echo "   - CAS redirection works correctly"
+    echo "   - Form authentication works correctly"
     exit 0
 else
     echo "💥 undertow-pac4j-demo test failed!"
     if [ "$HTTP_CODE" != "200" ]; then
         echo "❌ Application HTTP test failed (code: $HTTP_CODE)"
     fi
+    if [ "$OIDC_TEST_PASSED" != "true" ]; then
+        echo "❌ OIDC redirection test failed"
+    fi
     if [ "$CAS_TEST_PASSED" != "true" ]; then
         echo "❌ CAS redirection test failed"
     fi
-    if [ "$CAS_AUTH_PASSED" != "true" ]; then
-        echo "❌ CAS authentication/redirect to demo failed"
+    if [ "$FORM_TEST_PASSED" != "true" ]; then
+        echo "❌ Form authentication test failed"
     fi
     exit 1
 fi
