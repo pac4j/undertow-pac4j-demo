@@ -38,7 +38,7 @@ public class DemoConfigFactory implements ConfigFactory {
         oidcConfiguration.setResponseMode("form_post");
 
         val oidcClient = new OidcClient(oidcConfiguration);
-        oidcClient.setAuthorizationGenerator((ctx, profile) -> { profile.addRole("ROLE_ADMIN"); return Optional.of(profile); });
+        oidcClient.addAuthorizationGenerator((ctx, profile) -> { profile.addRole("ROLE_ADMIN"); return Optional.of(profile); });
 
         val cfg = new SAML2Configuration("resource:samlKeystore.jks",
                 "pac4j-demo-passwd",

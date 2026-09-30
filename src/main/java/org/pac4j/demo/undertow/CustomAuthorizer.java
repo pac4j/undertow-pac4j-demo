@@ -1,6 +1,5 @@
 package org.pac4j.demo.undertow;
 
-import org.apache.commons.lang3.StringUtils;
 import org.pac4j.core.authorization.authorizer.ProfileAuthorizer;
 import org.pac4j.core.context.WebContext;
 import org.pac4j.core.context.session.SessionStore;
@@ -20,6 +19,7 @@ public class CustomAuthorizer extends ProfileAuthorizer {
         if (profile == null) {
             return false;
         }
-        return StringUtils.startsWith(profile.getUsername(), "jle");
+        final String username = profile.getUsername();
+        return username != null && username.startsWith("jle");
     }
 }
