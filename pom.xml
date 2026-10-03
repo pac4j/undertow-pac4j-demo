@@ -11,7 +11,7 @@
 	<properties>
 		<pac4j.version>6.5.9</pac4j.version>
 		<undertow-pac4j.version>6.1.0</undertow-pac4j.version>
-		<undertow.version>2.4.3.Final</undertow.version>
+		<undertow.version>2.4.4.Final</undertow.version>
 		<java.version>17</java.version>
 		<lombok.version>1.18.48</lombok.version>
 	</properties>
